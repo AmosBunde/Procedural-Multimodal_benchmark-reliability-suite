@@ -84,6 +84,34 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_summarise(args: argparse.Namespace) -> int:
+    from .summarise import summarise
+
+    summary = summarise(Path(args.results), args.run_id)
+    for modality in ("vision", "audio"):
+        if modality not in summary:
+            continue
+        block = summary[modality]
+        print(f"{modality}: {len(block['design']['models'])} models, {block['design']['n_items_pooled']} items in {len(block['design']['suites'])} suites")
+        for model in block["ranking_pooled"]["ranking"]:
+            row = block["ranking_pooled"]["models"][model]
+            print(f"  {model:28s} {row['score']:.3f}  [{row['score_lo']:.3f}, {row['score_hi']:.3f}]  rank {row['rank_lo']:.0f}-{row['rank_hi']:.0f}")
+        for task, fc in block["floor_ceiling_pooled"].items():
+            print(f"  task {task:8s} {fc['status']:12s} accuracy {fc['min_accuracy']:.3f} to {fc['max_accuracy']:.3f}, chance {fc['chance']:.2f}")
+    for name, h in summary["hypotheses"].items():
+        print(f"{name}: {h['outcome']}")
+    print(f"wrote {Path(args.results) / 'summary.json'}")
+    return 0
+
+
+def cmd_figures(args: argparse.Namespace) -> int:
+    from .figures import make_figures
+
+    for path in make_figures(Path(args.results), Path(args.out)):
+        print(path)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="regenbench", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -112,6 +140,16 @@ def build_parser() -> argparse.ArgumentParser:
     e.add_argument("--force", action="store_true", help="re-evaluate even if a result file exists")
     e.add_argument("--verbose", action="store_true")
     e.set_defaults(func=cmd_evaluate)
+
+    s = sub.add_parser("summarise", help="run the reliability analysis and write results/summary.json")
+    s.add_argument("--run-id", type=_name("run id"), default="main")
+    s.add_argument("--results", default="results")
+    s.set_defaults(func=cmd_summarise)
+
+    f = sub.add_parser("figures", help="draw the figures from results/summary.json")
+    f.add_argument("--results", default="results")
+    f.add_argument("--out", default="docs/img")
+    f.set_defaults(func=cmd_figures)
     return parser
 
 
