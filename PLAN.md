@@ -226,4 +226,30 @@ H2, H7 and H9.
 
 ## Amendments
 
-None yet.
+All dated 21 November 2026, after the results were in. No hypothesis, threshold or
+decision rule was changed; `src/regenbench/hypotheses.py` is as committed with the plan.
+
+**A1. The planned "items needed" estimate is biased, and a second estimate was added.**
+The plan compares two disjoint random sets of n items per task drawn from the pool. Two
+disjoint parts of one finite pool are not independent: whatever one part has above the
+pool average, the rest of the pool lacks. For a pool of N items the correlation between
+the two parts is -n / (N - n), which is -0.25 at n = 72 and -1 at n = 180 for the image
+pool of 360. The estimate therefore understates how often two independently generated
+suites would agree, slightly at 72 items and badly at 180. I noticed it in the audio
+results, where agreement on the top model fell as n grew towards half the pool. I added a
+second estimate that draws the two sets independently, with replacement, from the pool
+("resampled"). It can also be computed for sizes larger than the pool. H6 is still scored
+by the planned estimate, as written. Both are reported, and the conclusions agree.
+
+**A2. Per-task tests of the wording effect were added.** The plan tested the effect of
+each paraphrase on the overall score only. To see whether any wording effect could be
+told from noise I added an exact McNemar test for each task, model and paraphrase against
+the canonical wording, Holm-corrected over all of them. This is exploratory.
+
+**A3. The evaluation took longer than budgeted.** The plan allowed about an hour of model
+time. The run took 84 minutes of wall time. The laptop was throttling, another job
+started on it during the run, and SigLIP alone took 37 minutes.
+The design was not cut to fit: every model was scored on every planned item.
+
+**A4. Reading of KR-20.** With three audio models KR-20 takes large negative values that
+mean nothing. I report it for the image tasks and treat negative values as "none".
