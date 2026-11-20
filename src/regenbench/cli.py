@@ -37,7 +37,7 @@ def cmd_generate(args: argparse.Namespace) -> int:
 
 def cmd_evaluate(args: argparse.Namespace) -> int:
     from . import study
-    from .evaluate import evaluate_suite, result_path
+    from .evaluate import evaluate_suite, load_result, result_path
     from .items import META_NAME
     from .models import get_model
     import json
@@ -77,7 +77,10 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
                 chunk_size=args.chunk_size,
                 progress=(lambda msg: print(msg, flush=True)) if args.verbose else None,
             )
-            print(f"{out}  ({time.perf_counter() - t0:.0f} s)", flush=True)
+            res = load_result(out)
+            per_task = [res["correct"][res["task"] == t, 0].mean() for t in dict.fromkeys(res["task"].tolist())]
+            score = sum(per_task) / len(per_task)
+            print(f"{out}  ({time.perf_counter() - t0:.0f} s, overall accuracy {score:.3f} under the canonical wording)", flush=True)
         adapter.close()
         del adapter
     print(f"done: {sum(len(j) for j in plan.values())} result file(s) written in {time.perf_counter() - started:.0f} s")

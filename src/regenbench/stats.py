@@ -167,13 +167,17 @@ def spearman_brown(r: float, factor: float = 2.0) -> float:
 # ------------------------------------------------------------------ bootstrap
 
 
-def stratified_bootstrap_means(correct, strata, n_boot: int, rng: np.random.Generator) -> tuple[np.ndarray, list]:
+def stratified_bootstrap_means(
+    correct, strata, n_boot: int, rng: np.random.Generator, size: int | None = None
+) -> tuple[np.ndarray, list]:
     """Bootstrap the per-stratum accuracy of several models over the same items.
 
     ``correct`` is (models, items) of 0/1 and ``strata`` gives the stratum (task) of each
     item. Items are resampled with replacement inside each stratum, and the same resample
-    is applied to every model, which keeps the comparison paired. Returns an array of
-    shape (n_boot, models, strata) and the list of stratum labels.
+    is applied to every model, which keeps the comparison paired. ``size`` sets how many
+    items are drawn per stratum (default: as many as the stratum holds), which simulates a
+    suite of another size. Returns an array of shape (n_boot, models, strata) and the list
+    of stratum labels.
     """
     x = np.asarray(correct, dtype=float)
     strata = np.asarray(strata)
@@ -182,8 +186,9 @@ def stratified_bootstrap_means(correct, strata, n_boot: int, rng: np.random.Gene
     for s, label in enumerate(labels):
         block = x[:, strata == label]
         n = block.shape[1]
-        counts = rng.multinomial(n, np.full(n, 1.0 / n), size=n_boot)  # how often each item is drawn
-        out[:, :, s] = counts @ block.T / n
+        drawn = size or n
+        counts = rng.multinomial(drawn, np.full(n, 1.0 / n), size=n_boot)  # how often each item is drawn
+        out[:, :, s] = counts @ block.T / drawn
     return out, labels
 
 

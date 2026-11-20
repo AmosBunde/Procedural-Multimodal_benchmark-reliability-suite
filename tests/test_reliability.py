@@ -64,6 +64,36 @@ def test_items_needed_grows_with_size():
     assert pool["200"]["mean_tau"] > ind["200"]["mean_tau"]
 
 
+def test_disjoint_halves_of_a_small_pool_understate_agreement():
+    # Two models that differ by two points in a pool of 200 items per task.
+    rng = np.random.default_rng(70)
+    correct, tasks = simulate([0.62, 0.60], 200, rng)
+    out = rel.items_needed(correct, tasks, (20, 100), 2000, np.random.default_rng(71), top_k=1, resampled_sizes=(20, 100, 3200))
+    ind, res = out["independent"], out["resampled"]
+    # Far from the pool size the two estimates agree.
+    assert ind["20"]["p_same_top1"] == pytest.approx(res["20"]["p_same_top1"], abs=0.06)
+    # Two halves that together make up the whole pool are perfectly anti-correlated around
+    # the pool average, so they disagree far more often than two independent suites would.
+    assert ind["100"]["p_same_top1"] < res["100"]["p_same_top1"] - 0.05
+    # With enough items two independent suites agree.
+    assert res["3200"]["p_same_top1"] > 0.9 > res["100"]["p_same_top1"]
+
+
+def test_resampled_agreement_matches_theory():
+    # One task, two models with a known gap. Each suite's score difference is close to
+    # normal, so the chance that two independent suites agree on the sign is p^2 + (1-p)^2.
+    from scipy.stats import norm
+
+    rng = np.random.default_rng(72)
+    correct, tasks = simulate([0.70, 0.60], 4000, rng, tasks=("a",))
+    n = 100
+    out = rel.items_needed(correct, tasks, (), 4000, np.random.default_rng(73), top_k=1, resampled_sizes=(n,))
+    diff = correct[0].mean() - correct[1].mean()
+    sd = (correct[0] - correct[1]).std() / np.sqrt(n)
+    p = norm.cdf(diff / sd)
+    assert out["resampled"][str(n)]["p_same_top1"] == pytest.approx(p**2 + (1 - p) ** 2, abs=0.03)
+
+
 def test_items_needed_is_trivial_for_widely_separated_models():
     correct, tasks = simulate([0.95, 0.5, 0.05], 200, np.random.default_rng(4))
     out = rel.items_needed(correct, tasks, (20, 100), 200, np.random.default_rng(5))
@@ -107,6 +137,10 @@ def test_template_sensitivity_detects_a_wording_that_hurts_one_model():
     hurt = [c for c in out["contrasts"] if c["nonzero"]]
     assert [(c["model"], c["template"]) for c in hurt] == [("m1", 2)] and hurt[0]["hi"] < 0
     assert out["flip_rate"]["m1"] > 0.3 and out["flip_rate"]["m2"] == 0
+    # The same shows per task: every (task, m1, third wording) cell changes, nothing else does.
+    real = {(c["task"], c["model"], c["template"]) for c in out["task_contrasts"] if c["p_holm"] < 0.05}
+    assert real == {(t, "m1", 2) for t in ("a", "b", "c")}
+    assert out["n_task_contrasts"] == 12 and out["n_task_contrasts_holm"] == 3
 
 
 def test_null_share_below_is_exact():

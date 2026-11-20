@@ -97,7 +97,7 @@ def _pct(ax, axis: str = "x") -> None:
 
 def fig_gallery_vision(out_dir: Path) -> Path:
     tasks = task_names("vision")
-    fig, axes = plt.subplots(3, len(tasks), figsize=(13.2, 9.6))
+    fig, axes = plt.subplots(3, len(tasks), figsize=(13.2, 9.2))
     for col, task in enumerate(tasks):
         for row, level in enumerate((1, 2, 3)):
             item = make_item("vision", task, level, 0, GALLERY_SEED)
@@ -122,7 +122,7 @@ def fig_gallery_vision(out_dir: Path) -> Path:
                 ax.set_title(TASK_TITLES[task], loc="center", pad=8)
             if col == 0:
                 ax.set_ylabel(f"level {level}", fontsize=9.5, color=MUTED, labelpad=8)
-    fig.subplots_adjust(hspace=0.62, wspace=0.14)
+    fig.subplots_adjust(hspace=0.52, wspace=0.14)
     return _save(fig, out_dir, "gallery_vision.png", dpi=120)
 
 
@@ -192,7 +192,7 @@ def fig_tasks(summary: dict, modality: str, out_dir: Path) -> Path:
     block = summary[modality]
     tasks = block["design"]["tasks"]
     order = block["ranking_pooled"]["ranking"][::-1]
-    cols = 3 if len(tasks) > 4 else len(tasks)
+    cols = 3 if len(tasks) > 4 else 2
     rows = -(-len(tasks) // cols)
     fig, axes = plt.subplots(rows, cols, figsize=(4.1 * cols, (0.3 * len(order) + 1.0) * rows), sharey=True, squeeze=False)
     for ax, task in zip(axes.ravel(), tasks):
@@ -249,30 +249,37 @@ def fig_seeds_templates(summary: dict, out_dir: Path) -> Path:
 
 
 def fig_items_needed(summary: dict, out_dir: Path) -> Path:
-    need = summary["vision"]["items_needed"]["independent"]
-    sizes = sorted(int(k) for k in need)
+    block = summary["vision"]["items_needed"]
+    used = summary["vision"]["design"]["n_items_per_task_per_suite"]
     series = [
         ("p_same_top1", "same top model", BLUE, "o", "-"),
         ("p_same_topk", "same top three", RED, "D", "-"),
         ("mean_tau", "Kendall tau (mean)", GREY, "s", (0, (4, 2))),
         ("p_same_order", "same complete order", GREEN, "^", (0, (1, 1.5))),
     ]
-    fig, ax = plt.subplots(figsize=(7.6, 4.4))
-    for key, label, colour, marker, ls in series:
-        ys = [need[str(n)][key] for n in sizes]
-        ax.plot(sizes, ys, color=colour, marker=marker, ls=ls, lw=2, ms=6, mec="white", mew=1, label=label)
-    used = summary["vision"]["design"]["n_items_per_task_per_suite"]
-    if used in sizes:
-        ax.axvline(used, color=GREY, lw=1, ls=(0, (2, 2)))
-        ax.text(used, 1.04, "suite size used", ha="center", va="bottom", fontsize=8, color=MUTED)
-    ax.set_xscale("log")
-    ax.set_xticks(sizes, [str(s) for s in sizes])
-    ax.minorticks_off()
-    ax.set_ylim(0, 1.03)
-    ax.set_xlabel("items per task in each of two independent suites")
-    ax.set_ylabel("agreement between the two suites")
-    ax.set_title("How large must a suite be before a regenerated copy agrees with it?", pad=18)
-    ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5))
+    panels = [
+        ("resampled", "Two independent suites (pool resampled)"),
+        ("independent", "Two disjoint parts of the pool (as planned; pessimistic)"),
+    ]
+    fig, axes = plt.subplots(1, 2, figsize=(12.6, 4.3), sharey=True, gridspec_kw={"width_ratios": [1.25, 1]})
+    for ax, (key, title) in zip(axes, panels):
+        need = block[key]
+        sizes = sorted(int(k) for k in need)
+        if used in sizes:
+            ax.axvline(used, color=GREY, lw=1, ls=(0, (2, 2)))
+            ax.text(used, 1.045, "size used", ha="center", va="bottom", fontsize=8, color=MUTED)
+        for name, label, colour, marker, ls in series:
+            ys = [need[str(n)][name] for n in sizes]
+            ax.plot(sizes, ys, color=colour, marker=marker, ls=ls, lw=2, ms=6, mec="white", mew=1, label=label)
+        ax.set_xscale("log")
+        ax.set_xticks(sizes, [f"{s:,}" for s in sizes])
+        ax.minorticks_off()
+        ax.set_ylim(0, 1.03)
+        ax.set_xlabel("items per task in each suite")
+        ax.set_title(title, pad=18)
+    axes[0].set_ylabel("agreement between the two suites")
+    axes[0].legend(loc="upper center", bbox_to_anchor=(0.9, -0.17), ncol=4)
+    fig.subplots_adjust(wspace=0.06)
     return _save(fig, out_dir, "items_needed.png")
 
 
@@ -371,7 +378,7 @@ def fig_redundancy(summary: dict, out_dir: Path) -> Path:
             if p["lo"] is not None and (p["lo"] > 0 or p["hi"] < 0):
                 shown[i, j] = shown[j, i] = p["spearman"]
     cmap = LinearSegmentedColormap.from_list("div", [RED, "#F1F1F1", BLUE])
-    cmap.set_bad("#F6F6F4")
+    cmap = cmap.with_extremes(bad="#F6F6F4")
     fig, ax = plt.subplots(figsize=(5.6, 5.0))
     im = ax.imshow(shown, cmap=cmap, vmin=-1, vmax=1)
     ax.set_xticks(range(n), tasks)

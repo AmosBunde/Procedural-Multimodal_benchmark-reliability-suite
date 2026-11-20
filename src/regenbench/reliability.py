@@ -127,17 +127,26 @@ def _agreement(score_a: np.ndarray, score_b: np.ndarray, top_k: int) -> dict:
     }
 
 
-def items_needed(correct, tasks, sizes, n_draws: int, rng: np.random.Generator, top_k: int = 3) -> dict:
+def items_needed(
+    correct, tasks, sizes, n_draws: int, rng: np.random.Generator, top_k: int = 3, resampled_sizes=()
+) -> dict:
     """How ranking agreement grows with the number of items per task.
 
-    Two kinds of agreement are reported for each size n:
+    Three estimates are reported for each size n:
 
-    * ``independent``: two disjoint random sets of n items per task are drawn and their
-      rankings compared. This is what two people would see if each generated their own
-      suite of that size. It needs 2n items per task, so n stops at half the pool.
+    * ``independent``: two disjoint random sets of n items per task are drawn from the
+      pool and their rankings compared. It needs 2n items per task, so n stops at half
+      the pool. Two disjoint parts of one finite pool are negatively correlated (what one
+      part has above the pool average the other lacks), with correlation -n / (N - n) for
+      a pool of N. The estimate is therefore pessimistic, slightly when n is small beside
+      N and badly when n approaches N / 2.
     * ``against_pool``: one random set of n items per task against the ranking from the
       whole pool. This is optimistic, because the subset is part of the pool, and reaches
       1 by construction when n equals the pool size.
+    * ``resampled``: two sets of n items per task drawn independently, with replacement,
+      from the pool. The two sets are independent given the pool, so this is the plug-in
+      estimate of what two freshly generated suites of size n would show. It treats the
+      pooled accuracies as the truth and can be computed for n larger than the pool.
     """
     x = np.asarray(correct, dtype=float)
     tasks = np.asarray(tasks)
@@ -158,7 +167,19 @@ def items_needed(correct, tasks, sizes, n_draws: int, rng: np.random.Generator, 
                 both[0, :, :, s] = block[:, picks[:, :n]].mean(axis=2).T
                 both[1, :, :, s] = block[:, picks[:, n:]].mean(axis=2).T
             independent[str(n)] = _agreement(both[0].mean(axis=2), both[1].mean(axis=2), top_k)
-    return {"pool_per_task": pool, "n_draws": int(n_draws), "top_k": top_k, "independent": independent, "against_pool": against_pool}
+    resampled = {}
+    for n in resampled_sizes:
+        a, _ = stats.stratified_bootstrap_means(x, tasks, n_draws, rng, size=n)
+        b, _ = stats.stratified_bootstrap_means(x, tasks, n_draws, rng, size=n)
+        resampled[str(n)] = _agreement(a.mean(axis=2), b.mean(axis=2), top_k)
+    return {
+        "pool_per_task": pool,
+        "n_draws": int(n_draws),
+        "top_k": top_k,
+        "independent": independent,
+        "against_pool": against_pool,
+        "resampled": resampled,
+    }
 
 
 # ------------------------------------------------- (c) seed reproducibility
@@ -244,10 +265,37 @@ def template_sensitivity(correct, tasks, models, n_boot: int, rng: np.random.Gen
                     "nonzero": bool(lo[m] > 0 or hi[m] < 0),
                 }
             )
+    # Per task and model: does a paraphrase change the outcome on the same items? (exact McNemar)
+    task_contrasts = []
+    tasks_arr = np.asarray(tasks)
+    for s_, lab in enumerate(labels):
+        sel = tasks_arr == lab
+        for m, name in enumerate(models):
+            for t in range(1, n_templates):
+                gained = int(((x[m, sel, 0] == 0) & (x[m, sel, t] == 1)).sum())
+                lost = int(((x[m, sel, 0] == 1) & (x[m, sel, t] == 0)).sum())
+                task_contrasts.append(
+                    {
+                        "task": lab,
+                        "model": name,
+                        "template": t,
+                        "change": float(acc[t, m, s_] - acc[0, m, s_]),
+                        "gained": gained,
+                        "lost": lost,
+                        "p": stats.mcnemar_exact(gained, lost),
+                    }
+                )
+    adjusted = stats.holm([c["p"] for c in task_contrasts])
+    for c, q in zip(task_contrasts, adjusted):
+        c["p_holm"] = float(q)
     task_spread = np.ptp(acc, axis=0)  # (models, tasks)
     return {
         "n_items": int(x.shape[1]),
         "n_templates": int(n_templates),
+        "task_contrasts": task_contrasts,
+        "n_task_contrasts": len(task_contrasts),
+        "n_task_contrasts_p05": int(sum(c["p"] < 0.05 for c in task_contrasts)),
+        "n_task_contrasts_holm": int((adjusted < 0.05).sum()),
         "scores": {name: [float(v) for v in score[:, m]] for m, name in enumerate(models)},
         "sd": {name: float(sd[m]) for m, name in enumerate(models)},
         "range": {name: float(spread[m]) for m, name in enumerate(models)},

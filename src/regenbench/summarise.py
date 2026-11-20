@@ -132,7 +132,15 @@ def analyse(data: RunData) -> dict:
         },
         "ranking_pooled": reliability.ranking_stability(pool, tasks_pool, m, N_BOOT, _rng(k, 1)),
         "ranking_main": reliability.ranking_stability(main[:, :, 0], tasks_main, m, N_BOOT, _rng(k, 2)),
-        "items_needed": reliability.items_needed(pool, tasks_pool, study.SIZES[data.modality], N_DRAWS, _rng(k, 3)),
+        "items_needed": reliability.items_needed(
+            pool,
+            tasks_pool,
+            study.SIZES[data.modality],
+            N_DRAWS,
+            _rng(k, 3),
+            top_k=min(3, len(m) - 1),  # "top three" of three models would always agree
+            resampled_sizes=study.RESAMPLED_SIZES[data.modality],
+        ),
         "seeds": reliability.seed_reproducibility(
             [data.correct(s)[:, :, 0] for s in data.suites], [data.field(s, "task") for s in data.suites], m, data.suites
         ),

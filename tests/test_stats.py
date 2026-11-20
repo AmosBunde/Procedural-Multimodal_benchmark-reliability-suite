@@ -129,6 +129,16 @@ def test_stratified_bootstrap_recovers_the_standard_error():
             assert boot[:, m, s].std() == pytest.approx(np.sqrt(p * (1 - p) / 200), rel=0.06)
 
 
+def test_bootstrap_can_simulate_a_suite_of_another_size():
+    rng = np.random.default_rng(12)
+    correct = (rng.random((1, 500)) < 0.3).astype(int)
+    p = correct.mean()
+    for size in (50, 2000):
+        boot, _ = stats.stratified_bootstrap_means(correct, np.zeros(500), 4000, np.random.default_rng(13), size=size)
+        assert boot.mean() == pytest.approx(p, abs=0.004)
+        assert boot.std() == pytest.approx(np.sqrt(p * (1 - p) / size), rel=0.06)
+
+
 def test_bootstrap_is_paired_across_models():
     rng = np.random.default_rng(6)
     base = (rng.random(300) < 0.6).astype(int)
