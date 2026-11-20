@@ -1,0 +1,22 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Generated benchmarks and media: rebuilt from a seed with `regenbench generate`.
+data/
+
+# Item-level cache used to resume interrupted evaluations.
+.cache/
+
+# Model weights are downloaded from Hugging Face, never committed.
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+models/

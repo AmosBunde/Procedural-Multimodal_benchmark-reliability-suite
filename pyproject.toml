@@ -1,0 +1,45 @@
+[project]
+name = "regenbench"
+version = "0.1.0"
+description = "A procedurally generated image and audio benchmark with exact ground truth, an evaluation pipeline for matching models, and tooling that measures whether the benchmark itself can be trusted."
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.1",
+  "pyarrow>=15",
+  "scipy>=1.11",
+  "pillow>=10.1",
+  "matplotlib>=3.8",
+  "torch>=2.2",
+  "torchvision>=0.17",
+  "open_clip_torch>=2.24",
+  "transformers>=4.40",
+  "sentencepiece>=0.2",
+  "protobuf>=4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+regenbench = "regenbench.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/regenbench"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# CPU-only PyTorch: every model here is evaluated without a GPU.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
