@@ -1,0 +1,111 @@
+{
+ "comment": "Measurements that are not part of the reliability analysis: run time, download sizes, licence tags and the adapter example. Written by hand from the commands noted beside each value.",
+ "evaluation": {
+  "command": "time uv run regenbench evaluate --study --run-id main --threads 6",
+  "wall_seconds": 5013,
+  "wall_minutes": 83.6,
+  "wall_minutes_rounded": 84,
+  "budget_minutes": 60,
+  "result_files": 39,
+  "siglip_minutes": 36.6,
+  "siglip_minutes_rounded": 37,
+  "note": "The laptop throttled under sustained load and another job started on it during the run.",
+  "pipeline_minutes_image_models": 68,
+  "pipeline_minutes_audio_models": 14,
+  "single_model_check": {
+   "command": "uv run regenbench evaluate --suite data/vision-seed0 --models openai-vit-b32 --run-id check",
+   "seconds_recorded_in_main_run": 88
+  }
+ },
+ "downloads_gb": {
+  "command": "du -shL ~/.cache/huggingface/hub/models--<repo>",
+  "openai-rn50": 0.39,
+  "openai-vit-b32": 0.58,
+  "laion2b-vit-b32": 0.58,
+  "datacomp-vit-b32": 0.58,
+  "metaclip-vit-b32": 0.58,
+  "siglip-vit-b16": 0.78,
+  "clap-htsat-unfused": 1.2,
+  "clap-larger-general": 1.5,
+  "clap-larger-music-speech": 1.5,
+  "total": 7.7,
+  "image_models_total": 3.5,
+  "audio_models_total": 4.2
+ },
+ "licence_tags": {
+  "source": "license field of each Hugging Face model card, read on 20 November 2026",
+  "openai-rn50": "mit",
+  "openai-vit-b32": "apache-2.0",
+  "laion2b-vit-b32": "mit",
+  "datacomp-vit-b32": "mit",
+  "metaclip-vit-b32": "cc-by-nc-4.0",
+  "siglip-vit-b16": "apache-2.0",
+  "clap-htsat-unfused": "apache-2.0",
+  "clap-larger-general": "apache-2.0",
+  "clap-larger-music-speech": "apache-2.0"
+ },
+ "revisions": {
+  "openai-rn50": "ec3d92cf63",
+  "openai-vit-b32": "a6f597a30f",
+  "laion2b-vit-b32": "1a25a44671",
+  "datacomp-vit-b32": "f0e2ffa09c",
+  "metaclip-vit-b32": "52dc0f732e",
+  "siglip-vit-b16": "41f575766f",
+  "clap-htsat-unfused": "8fa0f1c6d0",
+  "clap-larger-general": "ada0c23a36",
+  "clap-larger-music-speech": "195c3a3e68"
+ },
+ "example_adapter": {
+  "command": "uv run python examples/my_adapter.py data/fresh ; uv run python examples/my_adapter.py data/vision-seed0",
+  "checkpoint": "openai/clip-vit-base-patch32 through transformers",
+  "fresh_suite": {
+   "seed": 2026,
+   "n_items": 180,
+   "n_per_task": 30,
+   "seconds": 80,
+   "wall_seconds": 104,
+   "accuracy_by_template": [
+    0.5611,
+    0.5833,
+    0.5444
+   ],
+   "accuracy_canonical_by_task": {
+    "object": 0.9667,
+    "count": 0.4333,
+    "binding": 0.5333,
+    "spatial": 0.4,
+    "size": 0.5667,
+    "digits": 0.4667
+   }
+  },
+  "seed0_suite": {
+   "n_items": 432,
+   "n_outcomes": 1296,
+   "n_outcomes_agreeing_with_open_clip": 1296,
+   "accuracy_by_template": [
+    0.5903,
+    0.6065,
+    0.5764
+   ],
+   "open_clip_accuracy_by_template": [
+    0.5903,
+    0.6065,
+    0.5764
+   ],
+   "seconds": 116,
+   "wall_seconds": 128
+  }
+ },
+ "tests": {
+  "command": "uv run pytest -q",
+  "count": 113,
+  "seconds": 63
+ },
+ "post_processing_seconds": {
+  "generate_study": 1,
+  "summarise": 15,
+  "figures": 5,
+  "report": 1
+ },
+ "data_megabytes": 2.2
+}
