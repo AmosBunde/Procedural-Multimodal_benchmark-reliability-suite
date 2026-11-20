@@ -115,6 +115,13 @@ def cmd_figures(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_report(args: argparse.Namespace) -> int:
+    from .report import build_report
+
+    print(build_report(Path(args.results), Path(args.img), Path(args.out)))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="regenbench", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -153,6 +160,12 @@ def build_parser() -> argparse.ArgumentParser:
     f.add_argument("--results", default="results")
     f.add_argument("--out", default="docs/img")
     f.set_defaults(func=cmd_figures)
+
+    r = sub.add_parser("report", help="write the self-contained HTML health report")
+    r.add_argument("--results", default="results")
+    r.add_argument("--img", default="docs/img")
+    r.add_argument("--out", default="docs/health_report.html")
+    r.set_defaults(func=cmd_report)
     return parser
 
 

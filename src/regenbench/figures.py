@@ -218,7 +218,7 @@ def fig_tasks(summary: dict, modality: str, out_dir: Path) -> Path:
         Line2D([], [], color=GREY, marker="s", lw=1.8, ms=6, mec="white", label="not above chance"),
         Line2D([], [], color=GREY, lw=1.2, ls=(0, (4, 3)), label="chance level"),
     ]
-    fig.subplots_adjust(hspace=0.42, wspace=0.16)
+    fig.subplots_adjust(hspace=0.42 if len(order) > 3 else 0.6, wspace=0.16)
     fig.legend(handles=handles, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 0.02 if rows > 1 else -0.08))
     return _save(fig, out_dir, f"tasks_{modality}.png")
 
