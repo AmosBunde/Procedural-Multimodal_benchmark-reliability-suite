@@ -37,7 +37,7 @@ def cmd_generate(args: argparse.Namespace) -> int:
 
 def cmd_evaluate(args: argparse.Namespace) -> int:
     from . import study
-    from .evaluate import evaluate_suite, result_path
+    from .evaluate import evaluate_suite, load_result, result_path
     from .items import META_NAME
     from .models import get_model
     import json
@@ -77,10 +77,41 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
                 chunk_size=args.chunk_size,
                 progress=(lambda msg: print(msg, flush=True)) if args.verbose else None,
             )
-            print(f"{out}  ({time.perf_counter() - t0:.0f} s)", flush=True)
+            res = load_result(out)
+            per_task = [res["correct"][res["task"] == t, 0].mean() for t in dict.fromkeys(res["task"].tolist())]
+            score = sum(per_task) / len(per_task)
+            print(f"{out}  ({time.perf_counter() - t0:.0f} s, overall accuracy {score:.3f} under the canonical wording)", flush=True)
         adapter.close()
         del adapter
     print(f"done: {sum(len(j) for j in plan.values())} result file(s) written in {time.perf_counter() - started:.0f} s")
+    return 0
+
+
+def cmd_summarise(args: argparse.Namespace) -> int:
+    from .summarise import summarise
+
+    summary = summarise(Path(args.results), args.run_id)
+    for modality in ("vision", "audio"):
+        if modality not in summary:
+            continue
+        block = summary[modality]
+        print(f"{modality}: {len(block['design']['models'])} models, {block['design']['n_items_pooled']} items in {len(block['design']['suites'])} suites")
+        for model in block["ranking_pooled"]["ranking"]:
+            row = block["ranking_pooled"]["models"][model]
+            print(f"  {model:28s} {row['score']:.3f}  [{row['score_lo']:.3f}, {row['score_hi']:.3f}]  rank {row['rank_lo']:.0f}-{row['rank_hi']:.0f}")
+        for task, fc in block["floor_ceiling_pooled"].items():
+            print(f"  task {task:8s} {fc['status']:12s} accuracy {fc['min_accuracy']:.3f} to {fc['max_accuracy']:.3f}, chance {fc['chance']:.2f}")
+    for name, h in summary["hypotheses"].items():
+        print(f"{name}: {h['outcome']}")
+    print(f"wrote {Path(args.results) / 'summary.json'}")
+    return 0
+
+
+def cmd_figures(args: argparse.Namespace) -> int:
+    from .figures import make_figures
+
+    for path in make_figures(Path(args.results), Path(args.out)):
+        print(path)
     return 0
 
 
@@ -112,6 +143,16 @@ def build_parser() -> argparse.ArgumentParser:
     e.add_argument("--force", action="store_true", help="re-evaluate even if a result file exists")
     e.add_argument("--verbose", action="store_true")
     e.set_defaults(func=cmd_evaluate)
+
+    s = sub.add_parser("summarise", help="run the reliability analysis and write results/summary.json")
+    s.add_argument("--run-id", type=_name("run id"), default="main")
+    s.add_argument("--results", default="results")
+    s.set_defaults(func=cmd_summarise)
+
+    f = sub.add_parser("figures", help="draw the figures from results/summary.json")
+    f.add_argument("--results", default="results")
+    f.add_argument("--out", default="docs/img")
+    f.set_defaults(func=cmd_figures)
     return parser
 
 

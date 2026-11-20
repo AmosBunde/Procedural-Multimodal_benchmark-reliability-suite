@@ -19,6 +19,8 @@ MAIN_SEED = 0
 
 # Suite sizes (items per task) at which ranking agreement is measured.
 SIZES = {"vision": (9, 18, 36, 72, 108, 144, 180, 270, 360), "audio": (10, 20, 30, 45, 90)}
+# Sizes for the estimate that resamples the pool with replacement; these may exceed the pool.
+RESAMPLED_SIZES = {"vision": (9, 18, 36, 72, 144, 360, 720, 1440, 2880), "audio": (10, 30, 90, 360, 1440)}
 
 VISION_MODELS = (
     "openai-rn50",

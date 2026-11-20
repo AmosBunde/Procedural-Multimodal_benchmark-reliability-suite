@@ -41,9 +41,9 @@ _SPECS = [
     ModelSpec("datacomp-vit-b32", "image", "open_clip", "laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K", "ViT-B/32", "DataComp-1B", "DataComp ViT-B/32"),
     ModelSpec("metaclip-vit-b32", "image", "open_clip", "timm/vit_base_patch32_clip_224.metaclip_400m", "ViT-B/32", "MetaCLIP 400M", "MetaCLIP ViT-B/32"),
     ModelSpec("siglip-vit-b16", "image", "open_clip", "timm/ViT-B-16-SigLIP", "ViT-B/16, sigmoid loss", "WebLI", "SigLIP ViT-B/16"),
-    ModelSpec("clap-htsat-unfused", "audio", "clap", "laion/clap-htsat-unfused", "HTSAT + RoBERTa", "LAION-Audio-630K", "CLAP HTSAT unfused"),
-    ModelSpec("clap-larger-general", "audio", "clap", "laion/larger_clap_general", "HTSAT (larger) + RoBERTa", "general audio, music and speech", "CLAP larger, general"),
-    ModelSpec("clap-larger-music-speech", "audio", "clap", "laion/larger_clap_music_and_speech", "HTSAT (larger) + RoBERTa", "music and speech", "CLAP larger, music and speech"),
+    ModelSpec("clap-htsat-unfused", "audio", "clap", "laion/clap-htsat-unfused", "CLAP, HTSAT audio encoder", "see model card", "CLAP HTSAT unfused"),
+    ModelSpec("clap-larger-general", "audio", "clap", "laion/larger_clap_general", "CLAP, larger audio encoder", "see model card", "CLAP larger, general"),
+    ModelSpec("clap-larger-music-speech", "audio", "clap", "laion/larger_clap_music_and_speech", "CLAP, larger audio encoder", "see model card", "CLAP larger, music and speech"),
 ]
 MODELS: dict[str, ModelSpec] = {validate_name(s.key, "model key"): s for s in _SPECS}
 
